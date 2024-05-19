@@ -1,95 +1,70 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+import { PaginationState } from "@tanstack/react-table";
+import { useEffect, useMemo, useState } from "react";
+import Table from "./table";
+import { PageContextContext } from "@/Context/PageContext";
+import { ParamGetUsers, getUsers } from "@/api/users";
 
 export default function Home() {
+  const [totalData, setTotalData] = useState(0);
+  const [data, setData] = useState<any>([]);
+  const [orderBy, setOrderBy] = useState<string>("id asc");
+
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+
+  const fetchUser = useMemo(
+    () => async (params: ParamGetUsers) => {
+      try {
+        const getDataUsers = await getUsers({
+          ...params,
+        });
+
+        setData(getDataUsers.data);
+        setTotalData(getDataUsers.paginate.totalItems);
+        setPagination({
+          pageIndex: getDataUsers.paginate.currentPage - 1,
+          pageSize: 10,
+        });
+        setOrderBy(getDataUsers.paginate.orderBy);
+      } catch (error) {
+        setPagination({ pageIndex: 0, pageSize: 10 });
+        setData([]);
+        setOrderBy("id asc");
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    fetchUser({
+      orderBy,
+      page: pagination.pageIndex + 1,
+      limit: pagination.pageSize,
+    });
+  }, [orderBy, pagination]);
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          {process.env.APP_NAME};
-          <code className={styles.code}>src/app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <PageContextContext.Provider
+      value={{
+        pagination,
+        setPagination,
+        data,
+        setData,
+        orderBy,
+        setOrderBy,
+        totalData,
+      }}
+    >
+      <div className="container">
+        <div className="row">
+          <div className="col-12 mt-3">
+            <Table />
+          </div>
         </div>
       </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore the Next.js 13 playground.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    </PageContextContext.Provider>
   );
 }
